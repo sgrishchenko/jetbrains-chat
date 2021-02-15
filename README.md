@@ -9,5 +9,5 @@ Test application with chat emulation.
 ./gradlew run
 
 # Windows
-gradlew.bat run
+gradlew run
 ```
