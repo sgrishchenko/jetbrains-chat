@@ -1,31 +1,31 @@
 package me.sgrishchenko.jetbrainschat.client.messageList
 
+import kotlinx.css.*
 import kotlinx.html.js.onClickFunction
+import kotlinx.html.js.onScrollFunction
 import me.sgrishchenko.jetbrainschat.client.*
 import me.sgrishchenko.jetbrainschat.client.hooks.useResizeObserver
 import me.sgrishchenko.jetbrainschat.client.loader.Loader
 import me.sgrishchenko.jetbrainschat.client.loader.LoaderStyles
 import me.sgrishchenko.jetbrainschat.client.messageItem.MessageItem
-import me.sgrishchenko.jetbrainschat.client.vendor.VariableSizeList
-import me.sgrishchenko.jetbrainschat.client.vendor.VariableSizeListElement
-import me.sgrishchenko.jetbrainschat.client.vendor.WindowChildProps
-import me.sgrishchenko.jetbrainschat.client.vendor.WindowScrollProps
+import me.sgrishchenko.jetbrainschat.client.virtualList.StaticItem
+import me.sgrishchenko.jetbrainschat.client.virtualList.VirtualList
 import org.w3c.dom.DOMRectReadOnly
 import org.w3c.dom.Element
+import org.w3c.dom.HTMLElement
+import org.w3c.dom.events.Event
 import react.*
-import react.dom.jsStyle
 import styled.css
 import styled.styledButton
 import styled.styledDiv
 
 val MessageList = rFunction<RProps>("MessageList") {
     val (state, dispatch) = useReducer(::messagesReducer, messagesInitialState)
-    val (cache, dispatchCache) = useReducer(::messageSizesReducer, messageSizesInitialState)
     val (contentRect, setContentRect) = useState<DOMRectReadOnly?>(null)
+    val (scrollOffset, setScrollOffset) = useState(0)
 
     val content = useRef<Element?>(null)
-    val list = useRef<VariableSizeListElement?>(null)
-    val outerListContainer = useRef<Element?>(null)
+    val scroll = useRef<Element?>(null)
 
     val offset = state.messages.size
     val isLoading = state.isLoading
@@ -36,44 +36,30 @@ val MessageList = rFunction<RProps>("MessageList") {
             dispatch(LoadMessages())
 
             fetchMessages(offset).then {
-                dispatch(LoadMessagesDone(it.toList()))
+                dispatch(LoadMessagesDone(it))
             }
         }
     }, arrayOf(offset, isLoading))
 
-    val loadOnScroll = useCallback({ props: WindowScrollProps ->
-        val element = outerListContainer.current
+    val onScroll = useCallback({ event: Event ->
+        val element = event.currentTarget as HTMLElement
+        setScrollOffset(element.scrollTop.toInt())
+    }, arrayOf(setScrollOffset))
+
+    useResizeObserver(content, setContentRect)
+
+    useEffect(listOf(scroll, scrollOffset, loadingIsComplete, loadChunk)) {
+        val element = scroll.current
+
         if (element != null) {
             val maxScrollOffset = element.scrollHeight - element.clientHeight
             val threshold = maxScrollOffset - 100
 
-            if (props.scrollOffset > threshold && !loadingIsComplete) {
+            if (scrollOffset > threshold && !loadingIsComplete) {
                 loadChunk()
             }
         }
-    }, arrayOf(loadChunk, outerListContainer, loadingIsComplete))
-
-    val getItemSize = useCallback({ index: Int ->
-        if (index == state.messages.size) {
-            LoaderStyles.loaderHeight
-        } else {
-            val message = state.messages[index]
-
-            val itemSize = cache.messageSizes[message.id] ?: MessageListStyles.estimatedItemSize
-            itemSize + MessageListStyles.itemsGap
-        }
-    }, arrayOf(state, cache))
-
-    val updateItemSize = useCallback({ pair: Pair<MessageId, MessageSize> ->
-        dispatchCache(UpdateMessageSize(pair))
-    }, arrayOf(dispatchCache))
-
-    // forced reset of react-window cache
-    useEffect(listOf(getItemSize, list)) {
-        list.current?.resetAfterIndex(0)
     }
-
-    useResizeObserver(content, setContentRect)
 
     styledButton {
         css { +MessageListStyles.loadButton }
@@ -90,54 +76,45 @@ val MessageList = rFunction<RProps>("MessageList") {
             ref = content
             css { +MessageListStyles.content }
 
-            VariableSizeList {
-                ref = list
+            styledDiv {
+                ref = scroll
+                css {
+                    height = 100.pct
+                    overflow = Overflow.auto
 
-                attrs {
-                    height = contentRect?.height?.toInt() ?: 0
-                    direction = "rtl"
-
-                    // loader is additional item
-                    itemCount = state.messages.size + 1
-                    itemSize = getItemSize
-                    estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
-                    overscanCount = 5
-
-                    outerRef = outerListContainer
-
-                    onScroll = loadOnScroll
+                    put("willChange", "transform")
                 }
 
-                childList += { props: WindowChildProps ->
-                    buildElement {
-                        if (props.index == state.messages.size) {
-                            styledDiv {
-                                css { +MessageListStyles.loader }
-                                attrs {
-                                    jsStyle = props.style
-                                }
+                attrs {
+                    onScrollFunction = onScroll
+                }
 
-                                if (!loadingIsComplete) {
-                                    Loader {}
-                                }
-                            }
-                        } else {
-                            val message = state.messages[props.index]
+                VirtualList {
+                    attrs {
+                        height = contentRect?.height?.toInt() ?: 0
+                        this.scrollOffset = scrollOffset
 
-                            styledDiv {
-                                css { +MessageListStyles.item }
-                                attrs {
-                                    jsStyle = props.style
-                                }
+                        itemCount = state.messages.size + 1
+//                        overscanCount = 3
+                        estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
 
+                        renderItem = { props ->
+                            if (props.index == state.messages.size) {
+                                StaticItem {
+                                    attrs {
+                                        size = LoaderStyles.loaderHeight
+                                        updateSize = props.setItemSize
+                                    }
+
+                                    if (!loadingIsComplete) {
+                                        Loader {}
+                                    }
+                                }
+                            } else {
                                 MessageItem {
                                     attrs {
-                                        messageId = message.id
-                                        nickname = message.author.nickname
-                                        text = message.text
-                                        time = message.time
-
-                                        updateSize = updateItemSize
+                                        message = state.messages[props.index]
+                                        updateSize = props.setItemSize
                                     }
                                 }
                             }

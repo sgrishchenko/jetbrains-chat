@@ -42,6 +42,11 @@ object LoaderStyles : StyleSheet("LoaderStyles", isStatic = true) {
     }
 
     val container by css {
+        display = Display.flex
+        justifyContent = JustifyContent.center
+    }
+
+    val content by css {
         position = Position.relative
         width = 80.px
         height = loaderHeight.px

@@ -10,16 +10,20 @@ val Loader = rFunction<RProps>("Loader") {
         css { +LoaderStyles.container }
 
         styledDiv {
-            css { +LoaderStyles.firstItem }
-        }
-        styledDiv {
-            css { +LoaderStyles.secondItem }
-        }
-        styledDiv {
-            css { +LoaderStyles.thirdItem }
-        }
-        styledDiv {
-            css { +LoaderStyles.fourthItem }
+            css { +LoaderStyles.content }
+
+            styledDiv {
+                css { +LoaderStyles.firstItem }
+            }
+            styledDiv {
+                css { +LoaderStyles.secondItem }
+            }
+            styledDiv {
+                css { +LoaderStyles.thirdItem }
+            }
+            styledDiv {
+                css { +LoaderStyles.fourthItem }
+            }
         }
     }
 }

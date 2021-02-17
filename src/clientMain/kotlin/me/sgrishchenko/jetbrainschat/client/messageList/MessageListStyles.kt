@@ -18,26 +18,6 @@ object MessageListStyles : StyleSheet("MessageListStyles", isStatic = true) {
 
     val content by css {
         width = 600.px
-        transform {
-            rotate(180.deg)
-        }
-    }
-
-    val item by css {
-        marginLeft = 20.px
-        direction = Direction.ltr
-        transform {
-            rotate(180.deg)
-        }
-
-        // react-window injects width: 100%,
-        // that is why !important is used here
-        put("width", "calc(100% - 40px) !important")
-    }
-
-    val loader by css {
-        display = Display.flex
-        justifyContent = JustifyContent.center
     }
 
     val loadButton by css {

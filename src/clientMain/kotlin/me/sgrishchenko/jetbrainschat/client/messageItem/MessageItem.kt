@@ -1,33 +1,31 @@
 package me.sgrishchenko.jetbrainschat.client.messageItem
 
-import me.sgrishchenko.jetbrainschat.client.MessageId
-import me.sgrishchenko.jetbrainschat.client.MessageSize
 import me.sgrishchenko.jetbrainschat.client.formatTime
 import me.sgrishchenko.jetbrainschat.client.hooks.useResizeObserver
+import me.sgrishchenko.jetbrainschat.model.Message
 import org.w3c.dom.DOMRectReadOnly
 import org.w3c.dom.Element
 import react.*
 import styled.css
 import styled.styledDiv
 
-interface MessageProps : RProps {
-    var messageId: Long
-    var nickname: String
-    var text: String
-    var time: Long
-
-    var updateSize: (Pair<MessageId, MessageSize>) -> Unit
+interface MessageItemProps : RProps {
+    var message: Message
+    var updateSize: (size: Int) -> Unit
 }
 
-val MessageItem = rFunction<MessageProps>("MessageItem") { props ->
-    val messageId = props.messageId
+val MessageItem = rFunction<MessageItemProps>("MessageItem") { props ->
+    val message = props.message
     val updateSize = props.updateSize
     val container = useRef<Element?>(null)
 
     val handleResize = useCallback({ rect: DOMRectReadOnly ->
-        val messageSize = rect.height.toInt() + 2 * MessageItemStyles.itemsPadding
-        updateSize(messageId to messageSize)
-    }, arrayOf(messageId, updateSize))
+        val messageSize = rect.height.toInt() +
+            2 * MessageItemStyles.itemPadding +
+            MessageItemStyles.itemGap
+
+        updateSize(messageSize)
+    }, arrayOf(updateSize))
 
     useResizeObserver(container, handleResize)
 
@@ -38,13 +36,13 @@ val MessageItem = rFunction<MessageProps>("MessageItem") { props ->
             css { +MessageItemStyles.header }
             styledDiv {
                 css { +MessageItemStyles.nickname }
-                +"@${props.nickname}"
+                +"@${message.author.nickname}"
             }
             styledDiv {
                 css { +MessageItemStyles.time }
-                +formatTime(props.time)
+                +formatTime(message.time)
             }
         }
-        +props.text
+        +message.text
     }
 }

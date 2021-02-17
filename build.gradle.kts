@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpack
+import org.jetbrains.kotlin.gradle.targets.js.webpack.KotlinWebpackConfig.DevServer
 
 plugins {
     kotlin("multiplatform") version "1.4.21"
@@ -70,7 +71,6 @@ kotlin {
                 implementation("org.jetbrains:kotlin-react:16.13.1-pre.113-kotlin-1.4.0")
                 implementation("org.jetbrains:kotlin-react-dom:16.13.1-pre.113-kotlin-1.4.0")
                 implementation("org.jetbrains:kotlin-styled:1.0.0-pre.113-kotlin-1.4.0")
-                implementation(npm("react-window", "1.8.6"))
             }
         }
         val clientTest by getting {
@@ -87,6 +87,13 @@ application {
 
 tasks.getByName<KotlinWebpack>("clientBrowserProductionWebpack") {
     outputFileName = "output.js"
+}
+
+tasks.getByName<KotlinWebpack>("clientBrowserDevelopmentRun") {
+    devServer = DevServer(
+        contentBase = listOf(compilation.output.resourcesDir.canonicalPath),
+        proxy = mapOf("/messages" to "http://localhost:8000")
+    )
 }
 
 tasks.getByName<Jar>("serverJar") {

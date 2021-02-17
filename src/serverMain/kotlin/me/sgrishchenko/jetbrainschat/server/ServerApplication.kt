@@ -38,7 +38,7 @@ fun main() {
     val messageCount = serverProperties.getProperty("messages.count").toInt()
     val messageDelay = serverProperties.getProperty("messages.delay").toLong()
 
-    embeddedServer(Netty, port = 8080, host = "127.0.0.1") {
+    embeddedServer(Netty, port = 8000) {
         install(ContentNegotiation) {
             json()
         }
