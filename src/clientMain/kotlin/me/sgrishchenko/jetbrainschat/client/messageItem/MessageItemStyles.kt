@@ -15,7 +15,7 @@ object MessageItemStyles : StyleSheet("MessageItemStyles", isStatic = true) {
         borderRadius = 40.px
         borderBottomLeftRadius = 0.px
 
-        marginBottom = itemGap.px
+        marginTop = itemGap.px
     }
 
     val header by css {
