@@ -43,6 +43,85 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
 
     fun getInitialOffset(): Int = TODO()
 
+    fun getVisibleIndexes(clientWindow: IntRange): IntRange {
+        val scrollOffset = clientWindow.first
+        val clientHeight = clientWindow.last - scrollOffset
+
+        if (scrollOffset > measuredHeight) {
+            val lastMeasuredIndex = itemsOffsets.size - 1
+            val estimatedItemCount = clientHeight / estimatedItemSize
+            return lastMeasuredIndex..lastMeasuredIndex + estimatedItemCount
+        }
+
+        val indexRange = binaryIntersectionSearch(clientWindow)
+        val middleIndex = (indexRange.first + indexRange.last) / 2
+
+
+        val startIndexRange = binarySearch(clientWindow.first, indexRange.first..middleIndex)
+        val endIndexRange = binarySearch(clientWindow.last, middleIndex..indexRange.last)
+
+        return startIndexRange.last..endIndexRange.last
+    }
+
+    private fun binaryIntersectionSearch(valueRange: IntRange): IntRange {
+        val startIndex = 0
+        val endIndex = itemsOffsets.size - 1
+
+        return binaryReduce(startIndex..endIndex) { current, middleIndex ->
+            val middleOffset = itemsOffsets[middleIndex]
+
+            when {
+                valueRange.first > middleOffset -> {
+                    middleIndex..current.last
+                }
+                valueRange.last < middleOffset -> {
+                    current.first..middleIndex
+                }
+                else -> current
+            }
+        }
+    }
+
+    private fun binarySearch(value: Int, indexRange: IntRange): IntRange {
+        return binaryReduce(indexRange) { current, middleIndex ->
+            val middleOffset = itemsOffsets[middleIndex]
+
+            if (value > middleOffset) {
+                middleIndex..current.last
+            } else {
+                current.first..middleIndex
+            }
+        }
+    }
+
+    private fun binaryReduce(
+        initialIndexRange: IntRange,
+        operation: (indexRange: IntRange, middleIndex: Int) -> IntRange
+    ): IntRange {
+        var startIndex = initialIndexRange.first
+        var endIndex = initialIndexRange.last
+
+        var previousStartIndex: Int? = null
+        var previousEndIndex: Int? = null
+
+        while (
+            startIndex != previousStartIndex ||
+            endIndex != previousEndIndex
+        ) {
+            val middleIndex = (startIndex + endIndex) / 2
+
+            previousStartIndex = startIndex
+            previousEndIndex = endIndex
+
+            val result = operation(startIndex..endIndex, middleIndex)
+
+            startIndex = result.first
+            endIndex = result.last
+        }
+
+        return startIndex..endIndex
+    }
+
 //    fun getVisibleIndexes(clientWindow: IntRange): IntRange {
 //        var scrollHeight = 0
 //        var startIndex: Int? = null
