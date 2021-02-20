@@ -95,7 +95,6 @@ val MessageList = rFunction<RProps>("MessageList") {
                         this.scrollOffset = scrollOffset
 
                         itemCount = state.messages.size + 1
-//                        overscanCount = 3
                         estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
 
                         renderItem = { props ->

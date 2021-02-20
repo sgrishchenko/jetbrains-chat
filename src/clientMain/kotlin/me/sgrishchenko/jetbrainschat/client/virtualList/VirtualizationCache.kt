@@ -1,11 +1,18 @@
 package me.sgrishchenko.jetbrainschat.client.virtualList
 
-class VirtualizationCache(private val estimatedItemSize: Int) {
-    // TODO: parameterize overscanCount
-    val overscanCount = 1
+import kotlin.math.max
+import kotlin.math.min
 
+class VirtualizationCache(private val estimatedItemSize: Int) {
     private var itemSizes: MutableMap<Int, Int> = mutableMapOf()
     private var itemsOffsets: MutableList<Int> = mutableListOf()
+
+    private val measuredHeight
+        get() = if (itemsOffsets.isNotEmpty()) {
+            itemsOffsets[itemsOffsets.size - 1]
+        } else {
+            0
+        }
 
     fun setItemSize(index: Int, size: Int) {
         if (itemSizes[index] == size) return
@@ -18,6 +25,10 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
         }
 
         // fill gaps for interpolation
+        fillOffsetGaps(index)
+    }
+
+    private fun fillOffsetGaps(index: Int) {
         while (itemsOffsets.size <= index) {
             val lastIndex = itemsOffsets.size
             val cachedSize = itemSizes[lastIndex] ?: estimatedItemSize
@@ -30,8 +41,15 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
         }
     }
 
-    private val measuredHeight
-        get() = itemsOffsets[itemsOffsets.size - 1]
+    private fun actualizeOffsets(bound: Int) {
+        while (measuredHeight < bound) {
+            val lastIndex = itemsOffsets.size
+
+            if (itemSizes[lastIndex] == null) break
+
+            fillOffsetGaps(lastIndex)
+        }
+    }
 
     fun getScrollHeight(itemCount: Int): Int {
         val measuredCount = itemsOffsets.size
@@ -41,26 +59,75 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
         return measuredHeight + extrapolatedHeight
     }
 
-    fun getInitialOffset(): Int = TODO()
+    fun getVisibleIndexes(clientWindow: IntRange, itemCount: Int): IntRange {
+        // cache can be invalidated after item size setting
+        actualizeOffsets(clientWindow.last)
 
-    fun getVisibleIndexes(clientWindow: IntRange): IntRange {
-        val scrollOffset = clientWindow.first
-        val clientHeight = clientWindow.last - scrollOffset
+        if (itemsOffsets.isEmpty()) return IntRange.EMPTY
 
-        if (scrollOffset > measuredHeight) {
-            val lastMeasuredIndex = itemsOffsets.size - 1
-            val estimatedItemCount = clientHeight / estimatedItemSize
-            return lastMeasuredIndex..lastMeasuredIndex + estimatedItemCount
+        with(handleFullyUnmeasuredClientWindow(clientWindow)) {
+            if (this != null) return limitVisibleIndexes(this, itemCount)
         }
 
-        val indexRange = binaryIntersectionSearch(clientWindow)
+        val (measuredClientWindow, estimatedItemCount) =
+            handlePartiallyUnmeasuredClientWindow(clientWindow)
+
+        val indexRange = binaryIntersectionSearch(measuredClientWindow)
         val middleIndex = (indexRange.first + indexRange.last) / 2
 
+        val startIndexRange = binarySearch(measuredClientWindow.first, indexRange.first..middleIndex)
+        val endIndexRange = binarySearch(measuredClientWindow.last, middleIndex..indexRange.last)
 
-        val startIndexRange = binarySearch(clientWindow.first, indexRange.first..middleIndex)
-        val endIndexRange = binarySearch(clientWindow.last, middleIndex..indexRange.last)
+        val startIndex = startIndexRange.last
+        val endIndex = endIndexRange.last + estimatedItemCount
 
-        return startIndexRange.last..endIndexRange.last
+        return limitVisibleIndexes(startIndex..endIndex, itemCount)
+    }
+
+    private fun limitVisibleIndexes(visibleIndexes: IntRange, itemCount: Int): IntRange {
+        val startIndex = max(visibleIndexes.first, 0)
+        val endIndex = min(visibleIndexes.last, itemCount - 1)
+
+        return startIndex..endIndex
+    }
+
+    private fun handleFullyUnmeasuredClientWindow(clientWindow: IntRange): IntRange? {
+        val scrollOffset = clientWindow.first
+        val scrollOffsetBound = clientWindow.last
+
+        val clientWindowIsFullyUnmeasured = scrollOffset > measuredHeight
+        if (clientWindowIsFullyUnmeasured) {
+            val invisibleHeight = scrollOffset - measuredHeight
+            val estimatedInvisibleItemCount = (invisibleHeight / estimatedItemSize) + 1
+
+            val clientHeight = scrollOffsetBound - scrollOffset
+            val estimatedVisibleItemCount = (clientHeight / estimatedItemSize) + 1
+
+            val lastMeasuredIndex = itemsOffsets.size - 1
+            val startIndex = lastMeasuredIndex + estimatedInvisibleItemCount
+            val endIndex = startIndex + estimatedVisibleItemCount
+
+            return startIndex..endIndex
+        }
+
+        return null
+    }
+
+    private fun handlePartiallyUnmeasuredClientWindow(clientWindow: IntRange): Pair<IntRange, Int> {
+        val scrollOffset = clientWindow.first
+        val scrollOffsetBound = clientWindow.last
+
+        var measuredClientWindow = clientWindow
+        var estimatedItemCount = 0
+
+        val clientWindowIsPartiallyUnmeasured = scrollOffsetBound > measuredHeight
+        if (clientWindowIsPartiallyUnmeasured) {
+            measuredClientWindow = scrollOffset..measuredHeight
+            val unmeasuredClientHeight = scrollOffsetBound - measuredHeight
+            estimatedItemCount = (unmeasuredClientHeight / estimatedItemSize) + 1
+        }
+
+        return measuredClientWindow to estimatedItemCount
     }
 
     private fun binaryIntersectionSearch(valueRange: IntRange): IntRange {
@@ -122,33 +189,13 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
         return startIndex..endIndex
     }
 
-//    fun getVisibleIndexes(clientWindow: IntRange): IntRange {
-//        var scrollHeight = 0
-//        var startIndex: Int? = null
-//        var endIndex: Int? = null
-//
-//        for (index in 0 until itemCount) {
-//            val itemInfo = items[index]
-//            val itemSize = itemInfo?.size ?: estimatedItemSize
-//
-//            val itemStart = scrollHeight
-//            scrollHeight += itemSize
-//            val itemEnd = scrollHeight
-//
-//            if (startIndex == null) {
-//                if (clientWindow.contains(itemStart)) {
-//                    startIndex = index
-//                }
-//            } else if (endIndex == null) {
-//                if (!clientWindow.contains(itemStart)) {
-//                    endIndex = index
-//                }
-//            }
-//        }
-//
-//        startIndex = max((startIndex ?: 0) - overscanCount, 0)
-//        endIndex = min((endIndex ?: itemCount) + overscanCount, itemCount)
-//
-//        return startIndex..endIndex
-//    }
+    fun getInitialOffset(scrollOffset: Int, startIndex: Int): Int {
+        if (startIndex >= itemsOffsets.size) return 0
+
+        val itemSize = itemSizes[startIndex] ?: estimatedItemSize
+        val itemOffset = itemsOffsets[startIndex]
+        val itemStart = itemOffset - itemSize
+
+        return itemStart - scrollOffset
+    }
 }

@@ -18,14 +18,18 @@ val MessageItem = rFunction<MessageItemProps>("MessageItem") { props ->
     val message = props.message
     val updateSize = props.updateSize
     val container = useRef<Element?>(null)
+    val previousSize = useRef<Int?>(null)
 
     val handleResize = useCallback({ rect: DOMRectReadOnly ->
         val messageSize = rect.height.toInt() +
             2 * MessageItemStyles.itemPadding +
             MessageItemStyles.itemGap
 
-        updateSize(messageSize)
-    }, arrayOf(updateSize))
+        if (messageSize != previousSize.current) {
+            previousSize.current = messageSize
+            updateSize(messageSize)
+        }
+    }, arrayOf(updateSize, previousSize))
 
     useResizeObserver(container, handleResize)
 

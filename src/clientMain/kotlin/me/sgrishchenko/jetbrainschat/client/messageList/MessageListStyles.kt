@@ -1,9 +1,6 @@
 package me.sgrishchenko.jetbrainschat.client.messageList
 
 import kotlinx.css.*
-import kotlinx.css.properties.deg
-import kotlinx.css.properties.rotate
-import kotlinx.css.properties.transform
 import styled.StyleSheet
 
 object MessageListStyles : StyleSheet("MessageListStyles", isStatic = true) {
