@@ -9,8 +9,8 @@ import java.io.File
 import java.time.Duration
 
 private fun loadStringList(resource: String) = Json.decodeFromString(
-        ListSerializer(String.serializer()),
-        File(ClassLoader.getSystemResource(resource).file).readText()
+    ListSerializer(String.serializer()),
+    File(ClassLoader.getSystemResource(resource).file).readText()
 )
 
 private val NICKNAME_LIST = loadStringList("nicknames.json")
@@ -29,8 +29,8 @@ fun generateTime(index: Int): Long {
 }
 
 fun generateMessage(index: Int) = Message(
-        id = index.toLong(),
-        User(generateNickname()),
-        generateText(),
-        generateTime(index)
+    id = index.toLong(),
+    User(generateNickname()),
+    generateText(),
+    generateTime(index)
 )
