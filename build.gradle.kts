@@ -96,6 +96,10 @@ tasks.getByName<KotlinWebpack>("clientBrowserDevelopmentRun") {
     )
 }
 
+tasks.getByName<ProcessResources>("serverProcessResources") {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+}
+
 tasks.getByName<Jar>("serverJar") {
     dependsOn(tasks.getByName("clientBrowserProductionWebpack"))
     with(tasks.getByName<KotlinWebpack>("clientBrowserProductionWebpack")) {

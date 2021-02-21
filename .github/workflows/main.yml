@@ -12,4 +12,4 @@ jobs:
         with:
           java-version: 14
       - name: Gradle Test
-        run: ./gradlew allTests --warning-mode all
+        run: ./gradlew allTests
