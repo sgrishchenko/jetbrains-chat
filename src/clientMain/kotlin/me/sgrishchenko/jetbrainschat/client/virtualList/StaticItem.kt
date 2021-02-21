@@ -13,7 +13,7 @@ val StaticItem = rFunction<StaticItemProps>("StaticItem") { props ->
     val size = props.size
     val updateSize = props.updateSize
 
-    useEffect(listOf(updateSize)) {
+    useEffect(listOf(size, updateSize)) {
         updateSize(size)
     }
 

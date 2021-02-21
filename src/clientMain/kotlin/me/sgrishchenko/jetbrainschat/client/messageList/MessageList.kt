@@ -21,7 +21,7 @@ val MessageList = rFunction<RProps>("MessageList") {
     val (state, dispatch) = useReducer(::messagesReducer, messagesInitialState)
     val (contentRect, setContentRect) = useState<DOMRectReadOnly?>(null)
     val (scrollOffset, setScrollOffset) = useState(0)
-    val (scrollHeight, setScrollHeight) = useState(0)
+    val (initialized, setInitialized) = useState(false)
 
     val content = useRef<Element?>(null)
 
@@ -39,20 +39,28 @@ val MessageList = rFunction<RProps>("MessageList") {
                 dispatch(LoadMessagesDone(it))
             }
         }
-    }, arrayOf(offset, isLoading))
+    }, arrayOf(isLoading, offset, dispatch))
 
     useResizeObserver(content, setContentRect)
 
     val onScroll = useCallback({ event: ScrollEvent ->
-        setScrollOffset(event.scrollOffset)
-        setScrollHeight(event.scrollSize)
-    }, arrayOf(setScrollOffset, setScrollHeight))
-
-    useEffect(listOf(scrollOffset, scrollHeight, contentHeight, loadingIsComplete, loadChunk)) {
-        val maxScrollOffset = scrollHeight - contentHeight
+        val maxScrollOffset = event.scrollSize - contentHeight
         val threshold = maxScrollOffset - 100
 
-        if (scrollOffset > threshold && !loadingIsComplete) {
+        if (
+            event.scrollOffset != scrollOffset &&
+            event.scrollOffset > threshold &&
+            !loadingIsComplete
+        ) {
+            loadChunk()
+        }
+
+        setScrollOffset(event.scrollOffset)
+    }, arrayOf(contentHeight, scrollOffset, loadingIsComplete, loadChunk, setScrollOffset))
+
+    useEffect(listOf(loadChunk, initialized, setInitialized)) {
+        if (!initialized) {
+            setInitialized(true)
             loadChunk()
         }
     }

@@ -29,7 +29,7 @@ val MessageItem = rFunction<MessageItemProps>("MessageItem") { props ->
             previousSize.current = messageSize
             updateSize(messageSize)
         }
-    }, arrayOf(updateSize, previousSize))
+    }, arrayOf(previousSize, updateSize))
 
     useResizeObserver(container, handleResize)
 
