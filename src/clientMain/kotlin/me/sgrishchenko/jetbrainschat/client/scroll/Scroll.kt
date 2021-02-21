@@ -63,7 +63,7 @@ val Scroll = rFunction<ScrollProps>("Scroll") { props ->
         val delta = wheelEvent.deltaY.toInt()
         val maxScrollOffset = scrollHeight - clientHeight
 
-        dispatch(MoveScrollOffset(delta, maxScrollOffset))
+        dispatch(MoveScrollOffset(-delta, maxScrollOffset))
     }
 
     val onMouseDown = { downEvent: Event ->
@@ -81,7 +81,7 @@ val Scroll = rFunction<ScrollProps>("Scroll") { props ->
             val delta = ((currentCoordinate - initialCoordinate) / scale).toInt()
 
             val maxScrollOffset = scrollHeight - clientHeight
-            dispatch(SetScrollOffset(scrollOffset + delta, maxScrollOffset))
+            dispatch(SetScrollOffset(scrollOffset - delta, maxScrollOffset))
         }
 
         val onMouseUp = { _: Event ->
@@ -121,7 +121,7 @@ val Scroll = rFunction<ScrollProps>("Scroll") { props ->
             }
 
             attrs {
-                jsStyle { top = -scrollOffset.px }
+                jsStyle { bottom = -scrollOffset.px }
             }
 
             div {
@@ -141,7 +141,7 @@ val Scroll = rFunction<ScrollProps>("Scroll") { props ->
 
             attrs {
                 jsStyle {
-                    top = (scale * scrollOffset).px
+                    bottom = (scale * scrollOffset).px
                     height = (scale * clientHeight).px
                 }
 

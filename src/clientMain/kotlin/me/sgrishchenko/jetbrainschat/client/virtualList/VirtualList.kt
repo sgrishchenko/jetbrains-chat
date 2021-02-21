@@ -100,10 +100,10 @@ val VirtualList = rFunction<VirtualListProps>("VirtualList") { props ->
             }
 
             attrs {
-                jsStyle { top = (scrollOffset + initialOffset).px }
+                jsStyle { bottom = (scrollOffset + initialOffset).px }
             }
 
-            for (index in visibleIndexes) {
+            for (index in visibleIndexes.reversed()) {
                 Fragment {
                     attrs {
                         key = index.toString()
