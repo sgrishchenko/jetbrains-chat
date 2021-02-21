@@ -5,11 +5,11 @@ import kotlin.math.min
 
 class VirtualizationCache(private val estimatedItemSize: Int) {
     private var itemSizes: MutableMap<Int, Int> = mutableMapOf()
-    private var itemsOffsets: MutableList<Int> = mutableListOf()
+    private var itemOffsets: MutableList<Int> = mutableListOf()
 
     private val measuredHeight
-        get() = if (itemsOffsets.isNotEmpty()) {
-            itemsOffsets[itemsOffsets.size - 1]
+        get() = if (itemOffsets.isNotEmpty()) {
+            itemOffsets[itemOffsets.size - 1]
         } else {
             0
         }
@@ -19,9 +19,9 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
 
         itemSizes[index] = size
 
-        if (index < itemsOffsets.size) {
+        if (index < itemOffsets.size) {
             // invalidate cache
-            itemsOffsets.subList(index, itemsOffsets.size).clear()
+            itemOffsets.subList(index, itemOffsets.size).clear()
         }
 
         // fill gaps for interpolation
@@ -29,21 +29,21 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
     }
 
     private fun fillOffsetGaps(index: Int) {
-        while (itemsOffsets.size <= index) {
-            val lastIndex = itemsOffsets.size
+        while (itemOffsets.size <= index) {
+            val lastIndex = itemOffsets.size
             val cachedSize = itemSizes[lastIndex] ?: estimatedItemSize
 
             val previousIndex = lastIndex - 1
             val previousOffset =
-                if (previousIndex < 0) 0 else itemsOffsets[previousIndex]
+                if (previousIndex < 0) 0 else itemOffsets[previousIndex]
 
-            itemsOffsets.add(previousOffset + cachedSize)
+            itemOffsets.add(previousOffset + cachedSize)
         }
     }
 
     private fun actualizeOffsets(bound: Int) {
         while (measuredHeight < bound) {
-            val lastIndex = itemsOffsets.size
+            val lastIndex = itemOffsets.size
 
             if (itemSizes[lastIndex] == null) break
 
@@ -52,7 +52,7 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
     }
 
     fun getScrollHeight(itemCount: Int): Int {
-        val measuredCount = itemsOffsets.size
+        val measuredCount = itemOffsets.size
         val extrapolatedCount = itemCount - measuredCount
         val extrapolatedHeight = extrapolatedCount * estimatedItemSize
 
@@ -63,7 +63,7 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
         // cache can be invalidated after item size setting
         actualizeOffsets(clientWindow.last)
 
-        if (itemsOffsets.isEmpty()) return IntRange.EMPTY
+        if (itemOffsets.isEmpty()) return IntRange.EMPTY
 
         with(handleFullyUnmeasuredClientWindow(clientWindow)) {
             if (this != null) return limitVisibleIndexes(this, itemCount)
@@ -103,7 +103,7 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
             val clientHeight = scrollOffsetBound - scrollOffset
             val estimatedVisibleItemCount = (clientHeight / estimatedItemSize) + 1
 
-            val lastMeasuredIndex = itemsOffsets.size - 1
+            val lastMeasuredIndex = itemOffsets.size - 1
             val startIndex = lastMeasuredIndex + estimatedInvisibleItemCount
             val endIndex = startIndex + estimatedVisibleItemCount
 
@@ -132,10 +132,10 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
 
     private fun binaryIntersectionSearch(valueRange: IntRange): IntRange {
         val startIndex = 0
-        val endIndex = itemsOffsets.size - 1
+        val endIndex = itemOffsets.size - 1
 
         return binaryReduce(startIndex..endIndex) { current, middleIndex ->
-            val middleOffset = itemsOffsets[middleIndex]
+            val middleOffset = itemOffsets[middleIndex]
 
             when {
                 valueRange.first > middleOffset -> {
@@ -151,7 +151,7 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
 
     private fun binarySearch(value: Int, indexRange: IntRange): IntRange {
         return binaryReduce(indexRange) { current, middleIndex ->
-            val middleOffset = itemsOffsets[middleIndex]
+            val middleOffset = itemOffsets[middleIndex]
 
             if (value > middleOffset) {
                 middleIndex..current.last
@@ -190,10 +190,10 @@ class VirtualizationCache(private val estimatedItemSize: Int) {
     }
 
     fun getInitialOffset(scrollOffset: Int, startIndex: Int): Int {
-        if (startIndex >= itemsOffsets.size) return 0
+        if (startIndex >= itemOffsets.size) return 0
 
         val itemSize = itemSizes[startIndex] ?: estimatedItemSize
-        val itemOffset = itemsOffsets[startIndex]
+        val itemOffset = itemOffsets[startIndex]
         val itemStart = itemOffset - itemSize
 
         return itemStart - scrollOffset

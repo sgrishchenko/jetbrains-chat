@@ -104,12 +104,18 @@ val VirtualList = rFunction<VirtualListProps>("VirtualList") { props ->
             }
 
             for (index in visibleIndexes) {
-                renderItem(object : VirtualListRenderProps {
-                    override var index = index
-                    override var setItemSize = { size: Int ->
-                        setItemSize(index, size)
+                Fragment {
+                    attrs {
+                        key = index.toString()
                     }
-                })
+
+                    renderItem(object : VirtualListRenderProps {
+                        override var index = index
+                        override var setItemSize = { size: Int ->
+                            setItemSize(index, size)
+                        }
+                    })
+                }
             }
         }
     }
