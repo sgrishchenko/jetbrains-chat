@@ -6,7 +6,7 @@ import react.dom.jsStyle
 import styled.css
 import styled.styledDiv
 
-interface VirtualListRenderProps : RProps {
+interface VirtualListRenderProps {
     var index: Int
     var setItemSize: (size: Int) -> Unit
 }

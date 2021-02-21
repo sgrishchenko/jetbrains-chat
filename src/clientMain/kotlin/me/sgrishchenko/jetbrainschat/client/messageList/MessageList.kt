@@ -1,19 +1,17 @@
 package me.sgrishchenko.jetbrainschat.client.messageList
 
-import kotlinx.css.*
 import kotlinx.html.js.onClickFunction
-import kotlinx.html.js.onScrollFunction
 import me.sgrishchenko.jetbrainschat.client.*
 import me.sgrishchenko.jetbrainschat.client.hooks.useResizeObserver
 import me.sgrishchenko.jetbrainschat.client.loader.Loader
 import me.sgrishchenko.jetbrainschat.client.loader.LoaderStyles
 import me.sgrishchenko.jetbrainschat.client.messageItem.MessageItem
+import me.sgrishchenko.jetbrainschat.client.scroll.Scroll
+import me.sgrishchenko.jetbrainschat.client.scroll.ScrollEvent
 import me.sgrishchenko.jetbrainschat.client.virtualList.StaticItem
 import me.sgrishchenko.jetbrainschat.client.virtualList.VirtualList
 import org.w3c.dom.DOMRectReadOnly
 import org.w3c.dom.Element
-import org.w3c.dom.HTMLElement
-import org.w3c.dom.events.Event
 import react.*
 import styled.css
 import styled.styledButton
@@ -23,13 +21,15 @@ val MessageList = rFunction<RProps>("MessageList") {
     val (state, dispatch) = useReducer(::messagesReducer, messagesInitialState)
     val (contentRect, setContentRect) = useState<DOMRectReadOnly?>(null)
     val (scrollOffset, setScrollOffset) = useState(0)
+    val (scrollHeight, setScrollHeight) = useState(0)
 
     val content = useRef<Element?>(null)
-    val scroll = useRef<Element?>(null)
 
     val offset = state.messages.size
     val isLoading = state.isLoading
     val loadingIsComplete = state.loadingIsComplete
+
+    val contentHeight = contentRect?.height?.toInt() ?: 0
 
     val loadChunk = useCallback({
         if (!isLoading) {
@@ -41,23 +41,19 @@ val MessageList = rFunction<RProps>("MessageList") {
         }
     }, arrayOf(offset, isLoading))
 
-    val onScroll = useCallback({ event: Event ->
-        val element = event.currentTarget as HTMLElement
-        setScrollOffset(element.scrollTop.toInt())
-    }, arrayOf(setScrollOffset))
-
     useResizeObserver(content, setContentRect)
 
-    useEffect(listOf(scroll, scrollOffset, loadingIsComplete, loadChunk)) {
-        val element = scroll.current
+    val onScroll = useCallback({ event: ScrollEvent ->
+        setScrollOffset(event.scrollOffset)
+        setScrollHeight(event.scrollSize)
+    }, arrayOf(setScrollOffset, setScrollHeight))
 
-        if (element != null) {
-            val maxScrollOffset = element.scrollHeight - element.clientHeight
-            val threshold = maxScrollOffset - 100
+    useEffect(listOf(scrollOffset, scrollHeight, contentHeight, loadingIsComplete, loadChunk)) {
+        val maxScrollOffset = scrollHeight - contentHeight
+        val threshold = maxScrollOffset - 100
 
-            if (scrollOffset > threshold && !loadingIsComplete) {
-                loadChunk()
-            }
+        if (scrollOffset > threshold && !loadingIsComplete) {
+            loadChunk()
         }
     }
 
@@ -76,44 +72,37 @@ val MessageList = rFunction<RProps>("MessageList") {
             ref = content
             css { +MessageListStyles.content }
 
-            styledDiv {
-                ref = scroll
-                css {
-                    height = 100.pct
-                    overflow = Overflow.auto
-
-                    put("willChange", "transform")
-                }
-
+            Scroll {
                 attrs {
-                    onScrollFunction = onScroll
-                }
+                    height = contentHeight
+                    this.onScroll = onScroll
 
-                VirtualList {
-                    attrs {
-                        height = contentRect?.height?.toInt() ?: 0
-                        this.scrollOffset = scrollOffset
+                    VirtualList {
+                        attrs {
+                            height = contentHeight
+                            this.scrollOffset = scrollOffset
 
-                        itemCount = state.messages.size + 1
-                        estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
+                            itemCount = state.messages.size + 1
+                            estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
 
-                        renderItem = { props ->
-                            if (props.index == state.messages.size) {
-                                StaticItem {
-                                    attrs {
-                                        size = LoaderStyles.loaderHeight
-                                        updateSize = props.setItemSize
+                            renderItem = { props ->
+                                if (props.index == state.messages.size) {
+                                    StaticItem {
+                                        attrs {
+                                            size = LoaderStyles.loaderHeight
+                                            updateSize = props.setItemSize
+                                        }
+
+                                        if (!loadingIsComplete) {
+                                            Loader {}
+                                        }
                                     }
-
-                                    if (!loadingIsComplete) {
-                                        Loader {}
-                                    }
-                                }
-                            } else {
-                                MessageItem {
-                                    attrs {
-                                        message = state.messages[props.index]
-                                        updateSize = props.setItemSize
+                                } else {
+                                    MessageItem {
+                                        attrs {
+                                            message = state.messages[props.index]
+                                            updateSize = props.setItemSize
+                                        }
                                     }
                                 }
                             }
@@ -124,3 +113,4 @@ val MessageList = rFunction<RProps>("MessageList") {
         }
     }
 }
+
