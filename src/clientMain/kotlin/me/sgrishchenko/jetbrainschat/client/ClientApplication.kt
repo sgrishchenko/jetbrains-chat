@@ -24,5 +24,6 @@ fun main() {
 
         render(document.getElementById("root")) {
             MessageList {}
+        }
     }
 }
