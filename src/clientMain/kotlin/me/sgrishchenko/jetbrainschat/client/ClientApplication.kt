@@ -24,22 +24,5 @@ fun main() {
 
         render(document.getElementById("root")) {
             MessageList {}
-//            Scroll {
-//                attrs {
-//                    height = 500
-//
-//                    renderChildren = { props ->
-//                        repeat(30) {
-//                            div {
-//                                attrs {
-//                                    jsStyle { this.height = 50.px }
-//                                }
-//                                +"Item #$it (${props.scrollOffset})"
-//                            }
-//                        }
-//                    }
-//                }
-//            }
-        }
     }
 }
