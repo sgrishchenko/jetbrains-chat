@@ -12,3 +12,4 @@ Test application with chat emulation.
 # Windows
 gradlew run
 ```
+The application is launched at url http://localhost:8000/.
