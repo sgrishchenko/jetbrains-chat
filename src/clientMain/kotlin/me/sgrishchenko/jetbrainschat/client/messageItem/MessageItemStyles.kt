@@ -6,6 +6,7 @@ import styled.StyleSheet
 object MessageItemStyles : StyleSheet("MessageItemStyles", isStatic = true) {
     const val itemPadding = 20
     const val itemGap = 20
+    const val estimatedItemSize = 120 + itemGap
 
     val container by css {
         color = Color.white

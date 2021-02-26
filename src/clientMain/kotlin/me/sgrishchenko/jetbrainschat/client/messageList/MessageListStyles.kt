@@ -4,9 +4,6 @@ import kotlinx.css.*
 import styled.StyleSheet
 
 object MessageListStyles : StyleSheet("MessageListStyles", isStatic = true) {
-    const val estimatedItemSize = 120
-    const val itemsGap = 20
-
     val container by css {
         display = Display.flex
         justifyContent = JustifyContent.center

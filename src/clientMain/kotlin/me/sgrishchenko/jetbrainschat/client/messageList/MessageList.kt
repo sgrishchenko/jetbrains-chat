@@ -6,6 +6,7 @@ import me.sgrishchenko.jetbrainschat.client.hooks.useResizeObserver
 import me.sgrishchenko.jetbrainschat.client.loader.Loader
 import me.sgrishchenko.jetbrainschat.client.loader.LoaderStyles
 import me.sgrishchenko.jetbrainschat.client.messageItem.MessageItem
+import me.sgrishchenko.jetbrainschat.client.messageItem.MessageItemStyles
 import me.sgrishchenko.jetbrainschat.client.scroll.Scroll
 import me.sgrishchenko.jetbrainschat.client.scroll.ScrollEvent
 import me.sgrishchenko.jetbrainschat.client.virtualList.StaticItem
@@ -91,7 +92,7 @@ val MessageList = rFunction<RProps>("MessageList") {
                             this.scrollOffset = scrollOffset
 
                             itemCount = state.messages.size + 1
-                            estimatedItemSize = MessageListStyles.estimatedItemSize + MessageListStyles.itemsGap
+                            estimatedItemSize = MessageItemStyles.estimatedItemSize
 
                             renderItem = { props ->
                                 if (props.index == state.messages.size) {
